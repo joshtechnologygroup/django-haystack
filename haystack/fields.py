@@ -4,9 +4,14 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import re
 from inspect import ismethod
 
-from django.contrib.gis.geos import Point
+from django.core.exceptions import ImproperlyConfigured
 from django.template import loader
 from django.utils import datetime_safe, six
+
+try:
+    from django.contrib.gis.geos import Point
+except ImproperlyConfigured:
+    pass
 
 from haystack.exceptions import SearchFieldError
 from haystack.utils import get_model_ct_tuple
