@@ -231,9 +231,12 @@ class SearchField(object):
 
 
 class CharField(SearchField):
-    field_type = "string"
+    field_type = "text"
 
-    def __init__(self, **kwargs):
+    def __init__(self, field_type="text", **kwargs):
+        if field_type not in ["text", "keyword"]:
+            raise Exception("Only text and keyword fields are supported")
+        self.field_type = field_type
         if kwargs.get("facet_class") is None:
             kwargs["facet_class"] = FacetCharField
 

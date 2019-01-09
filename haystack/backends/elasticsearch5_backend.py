@@ -12,7 +12,7 @@ from haystack.backends.elasticsearch_backend import (
     ElasticsearchSearchBackend,
     ElasticsearchSearchQuery,
 )
-from haystack.constants import DEFAULT_OPERATOR, DJANGO_CT, FUZZINESS
+from haystack.constants import DEFAULT_OPERATOR, DJANGO_CT, FUZZINESS, DJANGO_ID
 from haystack.exceptions import MissingDependency
 from haystack.utils import get_identifier, get_model_ct
 
@@ -31,6 +31,21 @@ except ImportError:
 
 
 class Elasticsearch5SearchBackend(ElasticsearchSearchBackend):
+    DEFAULT_FIELD_MAPPING = {"type": "text", "analyzer": "snowball"}
+    FIELD_MAPPINGS = {
+        "edge_ngram": {"type": "text", "analyzer": "edgengram_analyzer"},
+        "ngram": {"type": "text", "analyzer": "ngram_analyzer"},
+        "date": {"type": "date"},
+        "datetime": {"type": "date"},
+        "location": {"type": "geo_point"},
+        "boolean": {"type": "boolean"},
+        "float": {"type": "float"},
+        "long": {"type": "long"},
+        "integer": {"type": "long"},
+        "keyword": {"type": "keyword"},
+        "text": {"type": "text", "analyzer": "snowball"}
+    }
+
     def __init__(self, connection_alias, **connection_options):
         super(Elasticsearch5SearchBackend, self).__init__(
             connection_alias, **connection_options
@@ -457,6 +472,35 @@ class Elasticsearch5SearchBackend(ElasticsearchSearchBackend):
                     facets["queries"][facet_fieldname] = facet_info["doc_count"]
         results["facets"] = facets
         return results
+
+    def build_schema(self, fields):
+        content_field_name = ""
+        mapping = {
+            DJANGO_CT: {
+                "type": "keyword",
+                "include_in_all": False,
+            },
+            DJANGO_ID: {
+                "type": "keyword",
+                "include_in_all": False,
+            },
+        }
+
+        for field_name, field_class in fields.items():
+            field_mapping = self.FIELD_MAPPINGS.get(
+                field_class.field_type, self.DEFAULT_FIELD_MAPPING
+            ).copy()
+            if field_class.boost != 1.0:
+                field_mapping["boost"] = field_class.boost
+
+            if field_class.document is True:
+                content_field_name = field_class.index_fieldname
+            if hasattr(field_class, "facet_for"):
+                field_mapping["index"] = "not_analyzed"
+                if "analyzer" in field_mapping:
+                    del field_mapping["analyzer"]
+            mapping[field_class.index_fieldname] = field_mapping
+        return content_field_name, mapping
 
 
 class Elasticsearch5SearchQuery(ElasticsearchSearchQuery):
