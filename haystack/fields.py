@@ -4,14 +4,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import re
 from inspect import ismethod
 
-from django.core.exceptions import ImproperlyConfigured
 from django.template import loader
 from django.utils import datetime_safe, six
-
-try:
-    from django.contrib.gis.geos import Point
-except ImproperlyConfigured:
-    pass
 
 from haystack.exceptions import SearchFieldError
 from haystack.utils import get_model_ct_tuple
@@ -234,8 +228,6 @@ class CharField(SearchField):
     field_type = "text"
 
     def __init__(self, field_type="text", **kwargs):
-        if field_type not in ["text", "keyword"]:
-            raise Exception("Only text and keyword fields are supported")
         self.field_type = field_type
         if kwargs.get("facet_class") is None:
             kwargs["facet_class"] = FacetCharField
@@ -268,6 +260,7 @@ class LocationField(SearchField):
         return "%s,%s" % (pnt_lat, pnt_lng)
 
     def convert(self, value):
+        from django.contrib.gis.geos import Point
         from haystack.utils.geo import ensure_point
 
         if value is None:
