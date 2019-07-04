@@ -431,7 +431,7 @@ class SearchNode(tree.Node):
 
         if query_string:
             if self.negated:
-                query_string = "NOT (%s)" % query_string
+                query_string = "(NOT (%s))" % query_string
             elif len(self.children) != 1:
                 query_string = "(%s)" % query_string
 
